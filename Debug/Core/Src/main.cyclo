@@ -1,0 +1,12 @@
+main.c:86:5:main	1
+main.c:174:6:SystemClock_Config	3
+main.c:212:13:MX_I2C1_Init	4
+main.c:257:13:MX_GPIO_Init	1
+main.c:307:6:lcd_init	1
+main.c:314:6:HAL_I2C_SlaveTxCpltCallback	1
+main.c:322:19:checkButtons	6
+main.c:350:19:checkJoystick	11
+main.c:400:6:StartWatchdog	2
+main.c:421:6:StartECUTask	3
+main.c:455:6:StartInputTask	2
+main.c:477:6:Error_Handler	1
