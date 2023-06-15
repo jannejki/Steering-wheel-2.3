@@ -71,7 +71,7 @@ void StartECUTask(void const *argument);
 void StartInputTask(void const *argument);
 
 /* USER CODE BEGIN PFP */
-
+void lcd_init();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -108,7 +108,7 @@ int main(void) {
 	MX_GPIO_Init();
 	MX_I2C1_Init();
 	/* USER CODE BEGIN 2 */
-
+	lcd_init();
 	/* USER CODE END 2 */
 
 	/* USER CODE BEGIN RTOS_MUTEX */
