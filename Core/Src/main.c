@@ -310,6 +310,7 @@ static void MX_GPIO_Init(void) {
 
 /* USER CODE BEGIN 4 */
 void lcd_send_data(char data) {
+	int i = 0;
 	uint8_t data_t[] = { 0x40, data };
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_Master_Transmit(&hi2c1, DISPADDR, data_t, sizeof(data_t),
