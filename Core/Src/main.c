@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,6 +34,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define BUFFER_SIZE 2
+#define DISPADDR   0x3C << 1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -71,6 +73,10 @@ void StartECUTask(void const *argument);
 void StartInputTask(void const *argument);
 
 /* USER CODE BEGIN PFP */
+void lcd_send_data(char data);
+void lcd_send_cmd(char cmd);
+void lcd_clear();
+void lcd_string(char string[80]);
 void lcd_init();
 /* USER CODE END PFP */
 
@@ -108,7 +114,7 @@ int main(void) {
 	MX_GPIO_Init();
 	MX_I2C1_Init();
 	/* USER CODE BEGIN 2 */
-	lcd_init();
+
 	/* USER CODE END 2 */
 
 	/* USER CODE BEGIN RTOS_MUTEX */
@@ -271,16 +277,15 @@ static void MX_GPIO_Init(void) {
 	HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
 			GPIO_PIN_RESET);
 
-	/*Configure GPIO pins : JOY_RIGHT_Pin BTN_RIGHT_UP_Pin BTN_RIGHT_DOWN_Pin */
-	GPIO_InitStruct.Pin = JOY_RIGHT_Pin | BTN_RIGHT_UP_Pin | BTN_RIGHT_DOWN_Pin;
+	/*Configure GPIO pins : JOY_RIGHT_Pin JOY_LEFT_Pin JOY_DOWN_Pin */
+	GPIO_InitStruct.Pin = JOY_RIGHT_Pin | JOY_LEFT_Pin | JOY_DOWN_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-	/*Configure GPIO pins : BTN_LEFT_DOWN_Pin BTN_LEFT_UP_Pin JOY_DOWN_Pin JOY_PRESS_Pin
-	 JOY_UP_Pin JOY_LEFT_Pin */
-	GPIO_InitStruct.Pin = BTN_LEFT_DOWN_Pin | BTN_LEFT_UP_Pin | JOY_DOWN_Pin
-			| JOY_PRESS_Pin | JOY_UP_Pin | JOY_LEFT_Pin;
+	/*Configure GPIO pins : BTN_LEFT_DOWN_Pin BTN_LEFT_UP_Pin JOY_PRESS_Pin JOY_UP_Pin */
+	GPIO_InitStruct.Pin = BTN_LEFT_DOWN_Pin | BTN_LEFT_UP_Pin | JOY_PRESS_Pin
+			| JOY_UP_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -304,11 +309,83 @@ static void MX_GPIO_Init(void) {
 }
 
 /* USER CODE BEGIN 4 */
+void lcd_send_data(char data) {
+	uint8_t data_t[] = { 0x40, data };
+	HAL_StatusTypeDef status;
+	status = HAL_I2C_Master_Transmit(&hi2c1, DISPADDR, data_t, sizeof(data_t),
+	HAL_MAX_DELAY);
+	if (status == HAL_OK) {
+		return;
+	} else {
+		return;
+		// error handling
+	}
+}
+
+void lcd_send_cmd(char cmd) {
+	uint8_t data_t[] = { 0x80, cmd };
+	HAL_StatusTypeDef status;
+	status = HAL_I2C_Master_Transmit(&hi2c1, DISPADDR, data_t, sizeof(data_t),
+	HAL_MAX_DELAY);
+
+	if (status == HAL_OK) {
+		return;
+	} else {
+		// error handling
+	}
+}
+
+void lcd_clear() {
+	lcd_send_cmd(0x01); // clear display
+	lcd_send_cmd(0x80); // set DDRAM address to 0x00}
+}
+
+void lcd_string(char string[80]) {
+	uint8_t length = strlen(string);
+	for (uint8_t i = 0; i < length; i++) {
+		lcd_send_data(string[i]);
+	}
+}
+
 void lcd_init() {
 	// make sure that RES and SA0 pins are named correctly
 	HAL_GPIO_WritePin(DISP_RES_GPIO_Port, DISP_RES_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(DISP_SA0_GPIO_Port, DISP_SA0_Pin, GPIO_PIN_RESET);
-
+#if 0
+	lcd_send_cmd(0x2A);  // function set (extended command set)
+	lcd_send_cmd(0x71);  // function selection A
+	lcd_send_data(0x00); // disable internal VDD regulator (2.8V I/O). data(0x5C) = enable regulator (5V I/O)
+	lcd_send_cmd(0x28);  // function set (fundamental command set)
+	// not turning display off means it doesn't blink on re-init, so is silent error.
+	// lcd_send_cmd(0x08); //display off, cursor off, blink off
+	lcd_send_cmd(0x2A);  // function set (extended command set)
+	lcd_send_cmd(0x79);  // OLED command set enabled
+	lcd_send_cmd(0xD5);  // set display clock divide ratio/oscillator frequency
+	lcd_send_cmd(0x70);  // set display clock divide ratio/oscillator frequency
+	lcd_send_cmd(0x78);  // OLED command set disabled
+	lcd_send_cmd(0x09);  // extended function set (4-lines)
+	lcd_send_cmd(0x06);  // COM SEG direction
+	lcd_send_cmd(0x72);  // function selection B
+	lcd_send_data(0x00); // ROM CGRAM selection
+	lcd_send_cmd(0x2A);  // function set (extended command set)
+	lcd_send_cmd(0x79);  // OLED command set enabled
+	lcd_send_cmd(0xDA);  // set SEG pins hardware configuration
+	lcd_send_cmd(0x10);  // set SEG pins hardware configuration
+	lcd_send_cmd(0xDC);  // function selection C
+	lcd_send_cmd(0x00);  // function selection C
+	lcd_send_cmd(0x81);  // set contrast control
+	lcd_send_cmd(0x7F);  // set contrast control
+	lcd_send_cmd(0xD9);  // set phase length
+	lcd_send_cmd(0xF1);  // set phase length
+	lcd_send_cmd(0xDB);  // set VCOMH deselect level
+	lcd_send_cmd(0x40);  // set VCOMH deselect level
+	lcd_send_cmd(0x78);  // OLED command set disabled
+	lcd_send_cmd(0x28);  // function set (fundamental command set)
+	// don't clear display, w're writing the whole thing anyway
+	lcd_send_cmd(0x01); // clear display
+	lcd_send_cmd(0x80); // set DDRAM address to 0x00
+	lcd_send_cmd(0x0C); // display ON
+#endif
 }
 
 void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c) {
@@ -316,28 +393,33 @@ void HAL_I2C_SlaveTxCpltCallback(I2C_HandleTypeDef *hi2c) {
 	HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
 			GPIO_PIN_RESET);
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	dataBuffer[0] = 0x00;
+	dataBuffer[1] = 0x00;
+	HAL_I2C_Slave_Transmit_IT(&hi2c1, dataBuffer, BUFFER_SIZE); // Start
+
 	xSemaphoreGiveFromISR(ECU_ACKHandle, &xHigherPriorityTaskWoken);
 }
 
+#if 0
 struct InputEvent checkButtons() {
 	struct InputEvent e;
 	if (HAL_GPIO_ReadPin(BTN_RIGHT_UP_GPIO_Port, BTN_RIGHT_UP_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
 		while (HAL_GPIO_ReadPin(BTN_RIGHT_UP_GPIO_Port, BTN_RIGHT_UP_Pin)
-				== GPIO_PIN_SET) {
+				== GPIO_PIN_RESET) {
 		}
 		e.button = 0x01;
 		e.group = BTN;
 	} else if (HAL_GPIO_ReadPin(BTN_RIGHT_UP_GPIO_Port, BTN_RIGHT_UP_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
 		e.button = 0x02;
 		e.group = BTN;
 	} else if (HAL_GPIO_ReadPin(BTN_RIGHT_UP_GPIO_Port, BTN_RIGHT_UP_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
 		e.button = 0x03;
 		e.group = BTN;
 	} else if (HAL_GPIO_ReadPin(BTN_RIGHT_UP_GPIO_Port, BTN_RIGHT_UP_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
 		e.button = 0x04;
 		e.group = BTN;
 	} else {
@@ -346,39 +428,45 @@ struct InputEvent checkButtons() {
 	}
 	return e;
 }
-
+#endif
 struct InputEvent checkJoystick() {
 	struct InputEvent e;
-	if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) == GPIO_PIN_SET) {
-		while (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) == GPIO_PIN_SET) {
+	if (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) == GPIO_PIN_RESET) {
+		while (HAL_GPIO_ReadPin(JOY_UP_GPIO_Port, JOY_UP_Pin) == GPIO_PIN_RESET) {
+			vTaskDelay(30);
 		}
 		e.button = 0x01;
 		e.group = JOY;
 	} else if (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
 		while (HAL_GPIO_ReadPin(JOY_RIGHT_GPIO_Port, JOY_RIGHT_Pin)
-				== GPIO_PIN_SET) {
+				== GPIO_PIN_RESET) {
+			vTaskDelay(30);
 		}
 		e.button = 0x02;
 		e.group = JOY;
 	} else if (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
 		while (HAL_GPIO_ReadPin(JOY_DOWN_GPIO_Port, JOY_DOWN_Pin)
-				== GPIO_PIN_SET) {
+				== GPIO_PIN_RESET) {
+			vTaskDelay(30);
 		}
 		e.button = 0x03;
 		e.group = JOY;
-	} else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, BTN_LEFT_UP_Pin)
-			== GPIO_PIN_SET) {
-		while (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, BTN_LEFT_UP_Pin)
-				== GPIO_PIN_SET) {
-		}
-		e.button = 0x04;
-		e.group = JOY;
+		/*	} else if (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, BTN_LEFT_UP_Pin)
+		 == GPIO_PIN_RESET) {
+		 while (HAL_GPIO_ReadPin(JOY_LEFT_GPIO_Port, BTN_LEFT_UP_Pin)
+		 == GPIO_PIN_RESET) {
+		 vTaskDelay(30);
+		 }
+		 e.button = 0x04;
+		 e.group = JOY;*/
 	} else if (HAL_GPIO_ReadPin(JOY_PRESS_GPIO_Port, JOY_PRESS_Pin)
-			== GPIO_PIN_SET) {
+			== GPIO_PIN_RESET) {
+
 		while (HAL_GPIO_ReadPin(JOY_PRESS_GPIO_Port, JOY_PRESS_Pin)
-				== GPIO_PIN_SET) {
+				== GPIO_PIN_RESET) {
+			vTaskDelay(30);
 		}
 		e.button = 0x05;
 		e.group = JOY;
@@ -399,13 +487,16 @@ struct InputEvent checkJoystick() {
 /* USER CODE END Header_StartWatchdog */
 void StartWatchdog(void const *argument) {
 	/* USER CODE BEGIN 5 */
+	lcd_init();
+	UBaseType_t queueLength = 0;
 
 	for (;;) {
 		HAL_GPIO_TogglePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin);
-		if (0 < uxQueueMessagesWaiting(ECUQueueHandle)) {
-			osDelay(1000);
-		} else {
+		queueLength = uxQueueMessagesWaiting(ECUQueueHandle);
+		if (queueLength > 0) {
 			osDelay(200);
+		} else {
+			osDelay(1000);
 		}
 	}
 	/* USER CODE END 5 */
@@ -435,10 +526,6 @@ void StartECUTask(void const *argument) {
 			if (ecuACK == pdFALSE) {
 				xQueueReset(ECUQueueHandle);
 			}
-
-		} else {
-			dataBuffer[0] = 0x00;
-			dataBuffer[1] = 0x00;
 		}
 		osDelay(200);
 	}
@@ -465,7 +552,7 @@ void StartInputTask(void const *argument) {
 		if (input.group != noGroup) {
 			xQueueSend(ECUQueueHandle, (void* ) &input, (TickType_t ) 0);
 		}
-		osDelay(50);
+		osDelay(200);
 	}
 	/* USER CODE END StartInputTask */
 }
