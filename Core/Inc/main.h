@@ -57,8 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define JOY_PRESS_Pin GPIO_PIN_2
-#define JOY_PRESS_GPIO_Port GPIOA
+#define JOY_RIGHT_Pin GPIO_PIN_2
+#define JOY_RIGHT_GPIO_Port GPIOA
 #define BTN_LEFT_DOWN_Pin GPIO_PIN_14
 #define BTN_LEFT_DOWN_GPIO_Port GPIOB
 #define BTN_LEFT_UP_Pin GPIO_PIN_15
@@ -69,14 +69,14 @@ void Error_Handler(void);
 #define DISP_RES_GPIO_Port GPIOA
 #define DISP_SA0_Pin GPIO_PIN_10
 #define DISP_SA0_GPIO_Port GPIOA
-#define JOY_DOWN_Pin GPIO_PIN_3
+#define JOY_LEFT_Pin GPIO_PIN_3
+#define JOY_LEFT_GPIO_Port GPIOB
+#define JOY_DOWN_Pin GPIO_PIN_4
 #define JOY_DOWN_GPIO_Port GPIOB
-#define JOY_RIGHT_Pin GPIO_PIN_4
-#define JOY_RIGHT_GPIO_Port GPIOB
 #define JOY_UP_Pin GPIO_PIN_5
 #define JOY_UP_GPIO_Port GPIOB
-#define JOY_LEFT_Pin GPIO_PIN_6
-#define JOY_LEFT_GPIO_Port GPIOB
+#define JOY_PRESS_Pin GPIO_PIN_6
+#define JOY_PRESS_GPIO_Port GPIOB
 #define INTERRUPT_LINE_Pin GPIO_PIN_9
 #define INTERRUPT_LINE_GPIO_Port GPIOB
 
