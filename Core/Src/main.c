@@ -620,36 +620,40 @@ void StartWatchdog(void const *argument) {
 void StartECUTask(void const *argument) {
 	/* USER CODE BEGIN StartECUTask */
 	/* Infinite loop */
-	//HAL_GPIO_WritePin(INT_GPIO_Port, INT_Pin, GPIO_PIN_RESET);
-	struct InputEvent e;
-	if (HAL_I2C_EnableListen_IT(&hi2c1) != HAL_OK) {
-		/* Transfer error in reception process */
-		Error_Handler();
-	}
+		HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
+				GPIO_PIN_RESET);
+		struct InputEvent e;
 
-	for (;;) {
-		if (xQueueReceive(ECUQueueHandle, &e, 10) == pdPASS) {
-			countqueued++;
-			xSemaphoreTake(ECU_ACKHandle, 0); // taking unnecessary semaphores if there is any
-			HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
-					GPIO_PIN_SET);
+		char message[64];
+		for (;;) {
+			if (xQueueReceive(ECUQueueHandle, &e, 10) == pdPASS) {
+				dataBuffer[0] = e.group;
+				dataBuffer[1] = e.button;
+				sprintf(message, "\n\rSending: %d %d", dataBuffer[0],
+						dataBuffer[1]);
 
-			dataBuffer[0] = e.group;
-			dataBuffer[1] = e.button;
-			datawaiting = true;
-			bool ecuACK = xSemaphoreTake(ECU_ACKHandle, 100);
-			if (ecuACK == pdFALSE) {
-				// reset i2c if no ack backs
-				datawaiting = false;
+				countqueued++;
+				xSemaphoreTake(ECU_ACKHandle, 0); // taking unnecessary semaphores if there is any
+
+				HAL_I2C_EnableListen_IT(&hi2c1);
+				HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
+						GPIO_PIN_SET);
+				datawaiting = true;
+
+				if (xSemaphoreTake(ECU_ACKHandle, 100) == pdFALSE) {
+					// reset i2c if no ack backs
+					datawaiting = false;
+					xQueueReset(ECUQueueHandle);
+				}
+
+
 				dataBuffer[0] = 0;
 				dataBuffer[1] = 0;
-				xQueueReset(ECUQueueHandle);
+			} else {
+				HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
+						GPIO_PIN_RESET);
 			}
-		} else {
-			HAL_GPIO_WritePin(INTERRUPT_LINE_GPIO_Port, INTERRUPT_LINE_Pin,
-					GPIO_PIN_RESET);
 		}
-	}
 	/* USER CODE END StartECUTask */
 }
 
